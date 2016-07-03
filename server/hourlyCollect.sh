@@ -3,7 +3,7 @@
 
 #捕获间隔
 
-sleepTime="3600"
+sleepTime="10"
 
 #当前时间
 currentTime=$(date +%s)
@@ -16,12 +16,12 @@ echo $filename
 # 写入起始时间
 date +%s | awk '{print "start_timestamp:" $1 }' > ./Timestamp/hourly/$filename
 
-tcpdump -i p3p1 tcp[20:2]=0x4745 or tcp[20:2]=0x504f -w tcp.cap -s 512 2>&1 &
+tcpdump -i p3p1 tcp[20:2]=0x4745 or tcp[20:2]=0x504f -w ./Capture_Package/hourly/tcp.cap -s 512 2>&1 &
 
 # 捕获间隔
 sleep $sleepTime
 
-strings tcp.cap | grep -E "Host:"|awk -F ' ' '{print $2 }' >>  url_collect
+strings ./Capture_Package/hourly/tcp.cap | grep -E "Host:"|awk -F ' ' '{print $2 }' >  hourly_url_collect
 
 echo "Stringfy Ok"
 
@@ -30,7 +30,7 @@ echo "Stringfy Ok"
 # 写入结束时间
 date +%s | awk '{print "end_timestamp:" $1 }' >> ./Timestamp/hourly/$(date +%s)
 
-grep -v -i -E "^$" url_collect | awk -F '/' '{print $1}' | sort | uniq -c | sort -nr >> ./Timestamp/$(date +%s)
+grep -v -i -E "^$"  hourly_url_collect | awk -F '/' '{print $1}' | sort | uniq -c | sort -nr >> ./Timestamp/hourly/$(date +%s)
 
 echo "Decode OK"
 cat Timestamp/hourly/$(date +%s)
