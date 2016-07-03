@@ -1,6 +1,6 @@
-#tcp.cap
-tcp.cap
-url_collect
+
+hourly_url_collect
+
 #static files
 *.html
 *.gif
@@ -9,5 +9,5 @@ url_collect
 
 phpmyadmin/
 Timestamp/
-Capture_package/
+server/Capture_Package/
 
