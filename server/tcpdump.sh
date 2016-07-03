@@ -29,7 +29,7 @@ echo "Stringfy Ok"
 
 date +%s | awk '{print "end_timestamp:" $1 }' >> ./Timestamp/$(date +%s)
 
-grep -v -i -E "^$" url.txt | awk -F '/' '{print $1}' | sort | uniq -c | sort -nr >> ./Timestamp/$(date +%s)
+grep -v -i -E "^$" url_collect | awk -F '/' '{print $1}' | sort | uniq -c | sort -nr >> ./Timestamp/$(date +%s)
 
 echo "Decode OK"
 cat Timestamp/$(date +%s)
