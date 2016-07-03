@@ -1,5 +1,4 @@
 server/hourly_url_collect
-
 #static files
 *.html
 *.gif
