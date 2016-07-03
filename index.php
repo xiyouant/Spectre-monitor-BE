@@ -1,7 +1,7 @@
 <?php
 // 将一个文件读入数组。
 //读取时间戳文件为一维数组
-$urlsArray = file('server/Timestamp/hourly/1467540807');
+$urlsArray = file('server/Timestamp/hourly/1467550998');
 
 //时间戳一维数组长度
 $timeStampArrayLength = count($urlsArray);
