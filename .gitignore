@@ -1,5 +1,4 @@
-
-hourly_url_collect
+server/hourly_url_collect
 
 #static files
 *.html
