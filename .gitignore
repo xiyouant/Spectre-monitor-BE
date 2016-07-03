@@ -1,3 +1,12 @@
-
 #tcp.cap
 tcp.cap
+
+#static files
+.html
+.gif
+.txt
+.ini
+
+phpmyadmin/
+Timestamp/
+
