@@ -1,10 +1,14 @@
+composer.json
+contribute.md
+readme.rst
 server/hourly_url_collect
 #static files
 *.html
 *.gif
 *.txt
 *.ini
-
+ci/
+userguide/
 phpmyadmin/
 Timestamp/
 server/Capture_Package/
