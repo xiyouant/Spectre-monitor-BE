@@ -1,5 +1,5 @@
 composer.json
-contribute.md
+contributing.md
 readme.rst
 server/hourly_url_collect
 #static files
@@ -8,7 +8,7 @@ server/hourly_url_collect
 *.txt
 *.ini
 ci/
-userguide/
+user_guide/
 phpmyadmin/
 Timestamp/
 server/Capture_Package/

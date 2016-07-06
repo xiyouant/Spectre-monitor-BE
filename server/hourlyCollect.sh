@@ -7,7 +7,7 @@ export spectre="/home/wwwroot/default/server/"
 
 #捕获间隔
 
-sleepTime="10"
+sleepTime="3599"
 
 #当前时间
 currentTime=$(date +%s)
