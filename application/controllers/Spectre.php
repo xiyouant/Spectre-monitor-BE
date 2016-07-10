@@ -18,17 +18,23 @@ class Spectre extends CI_Controller {
       $this->load->helper('file');
       $this->load->helper('date');
       $timeStampfiles = get_filenames('server/Timestamp/');
-      if (count($timeStampfiles) !== 0) {
+      if (count($timeStampfiles) != 0 && count($timeStampfiles) >=2) {
           // 文件名排序
           sort($timeStampfiles);
           $arrLength = count($timeStampfiles);
-          // 倒数第二个文件名
+          // 取最近一次收集时间
           $finaTimestampfile = $timeStampfiles[$arrLength - 2];
           $now = time();
           // 最近一次文件与当前的时间间隔
-          $priod = $now - $finaTimestampfile;
+          print_r("now:" .$now);
+          $period = $now - $finaTimestampfile;
+          print_r('<pre>');
+          print_r("file to get :" .$finaTimestampfile);
+          print_r('<pre>');
+          print_r($period);
+          print_r('<pre>');
           //TODO
-          if ($priod > 3598) {
+          if ($period === 0 || $period === 1) {
             // print_r($finaTimestampfile);
             return $finaTimestampfile;
           }

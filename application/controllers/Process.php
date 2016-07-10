@@ -1,7 +1,7 @@
 <?php
 class Process extends CI_Controller {
 
-    private function meta_query(){
+    public function meta_query(){
         $query = $this->db->query('SELECT id,url,count,startTimestamp,endTimestamp FROM metadata');
         // 定义查询结果数组
         $queryArray = $query->result_array();
@@ -32,6 +32,7 @@ class Process extends CI_Controller {
         $response = $this->meta_query();
         $this->output
         ->set_status_header(200)
+        ->set_header('Access-Control-Allow-Origin: *')
         ->set_content_type('application/json', 'utf-8')
         ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
         ->_display();
@@ -39,9 +40,18 @@ class Process extends CI_Controller {
     }
 
 
+    public function fuck_json(){
+      $response=array('1'=>"one", '2'=>"two", '3'=>"three");
+      $this->output
+      ->set_status_header(200)
+      ->set_header('Access-Control-Allow-Origin: *')
+      ->set_content_type('application/json', 'utf-8')
+      ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+      ->_display();
+      exit;
+    }
     public function index(){
         $this->load->view('status');
     }
-
 
 }
