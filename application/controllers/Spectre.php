@@ -33,15 +33,16 @@ class Spectre extends CI_Controller {
           print_r('<pre>');
           print_r($period);
           print_r('<pre>');
+          return $finaTimestampfile;
           //TODO
-          if ($period === 0 || $period === 1) {
-            // print_r($finaTimestampfile);
-            return $finaTimestampfile;
-          }
-          else {
-            print_r("period not fit");
-            return null;
-          }
+          // if ($period === 0 || $period === 1) {
+          //   // print_r($finaTimestampfile);
+          //   return $finaTimestampfile;
+          // }
+          // else {
+          //   print_r("period not fit");
+          //   return null;
+          // }
         }
       else {
         print_r("Cache folder is empty");

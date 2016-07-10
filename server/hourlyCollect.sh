@@ -2,7 +2,7 @@
 kill `ps aux | grep tcpdump | grep -v grep | awk '{print $2}'`
 #设置环境变量
 export spectre="/home/wwwroot/default/server"
- 
+
 # Start capturing
 
 #捕获间隔
@@ -37,6 +37,7 @@ grep -v -i -E "^$"  $spectre/hourly_url_collect | awk -F '/' '{print $1}' | sort
 
 #echo "Decode OK"
 #cat $spectre/Timestamp/hourly/$(date +%s)
-rm $spectre/hourly_url_collect $$ rm $spectre/Capture_Package/hourly/tcp.cap
+rm $spectre/hourly_url_collect
+rm $spectre/Capture_Package/hourly/tcp.cap
 
 kill `ps aux | grep tcpdump | grep -v grep | awk '{print $2}'`
