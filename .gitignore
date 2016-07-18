@@ -1,29 +1,25 @@
+################### Cache files ########################
 application/cache/*
 !application/cache/index.html
 !application/cache/.htaccess
-
 application/logs/*
 !application/logs/index.html
 !application/logs/.htaccess
-
 user_guide_src/build/*
 user_guide_src/cilexer/build/*
 user_guide_src/cilexer/dist/*
 user_guide_src/cilexer/pycilexer.egg-info/*
-
-###########################################
+################### Doc files ###########################
 composer.json
 contributing.md
 readme.rst
-server/hourly_url_collect
-###########################################
-#static files
+################### Static files ########################
 *.html
 *.gif
 *.txt
 *.ini
-###########################################
-ci/
+################### Process files #######################
+server/hourly_url_collect
 user_guide/
 phpmyadmin/
 Timestamp/
