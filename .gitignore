@@ -18,6 +18,7 @@ readme.rst
 *.gif
 *.txt
 *.ini
+*.user.ini
 ################### Process files #######################
 server/hourly_url_collect
 user_guide/
