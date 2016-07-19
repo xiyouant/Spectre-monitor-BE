@@ -27,4 +27,4 @@ Timestamp/
 server/Capture_Package/
 
 ################### DB files ###########################
-!application/config/database.php
+application/config/database.php
