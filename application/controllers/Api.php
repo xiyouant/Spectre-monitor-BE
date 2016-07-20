@@ -61,26 +61,7 @@ class Api extends CI_Controller {
     
     
     public function traffic_meta_query()
-    {   //调用 interface_meta_query 查询结果
-        
-        // $interfacesArray = $this->interface_meta_query();
-        // for ($i=0; $i < count($interfacesArray); $i++) {
-        //     // $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
-        //     $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
-        //     // 定义查询结果数组
-        //     $queryArray[]= array('Download' => ($query->result_array()) );
-        // }
-        
-        // for ($i=0; $i < count($interfacesArray); $i++) {
-        //     // $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
-        //     $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='transmit' ORDER BY id DESC LIMIT 10");
-        //     // 定义查询结果数组
-        //     $queryArray[]= array('Upload' => ($query->result_array()) );
-        // }
-        // // print_r('<pre>');
-        // // print_r($queryArray);
-        // return $queryArray;
-        
+    {
         //调用 interface_meta_query 查询结果
         $interfacesArray = $this->interface_meta_query();
         for ($i=0; $i < count($interfacesArray); $i++) {
