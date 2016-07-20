@@ -60,16 +60,71 @@ class Api extends CI_Controller {
     }
     
     
-    private function traffic_meta_query()
+    public function traffic_meta_query()
     {   //调用 interface_meta_query 查询结果
         
+        // $interfacesArray = $this->interface_meta_query();
+        // for ($i=0; $i < count($interfacesArray); $i++) {
+        //     // $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
+        //     $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
+        //     // 定义查询结果数组
+        //     $queryArray[]= array('Download' => ($query->result_array()) );
+        // }
+        
+        // for ($i=0; $i < count($interfacesArray); $i++) {
+        //     // $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
+        //     $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='transmit' ORDER BY id DESC LIMIT 10");
+        //     // 定义查询结果数组
+        //     $queryArray[]= array('Upload' => ($query->result_array()) );
+        // }
+        // // print_r('<pre>');
+        // // print_r($queryArray);
+        // return $queryArray;
+        
+        //调用 interface_meta_query 查询结果
         $interfacesArray = $this->interface_meta_query();
         for ($i=0; $i < count($interfacesArray); $i++) {
-            $query = $this->db->query("SELECT interface,timeStamp,trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
-            // 定义查询结果数组
-            $queryArray[]= $query->result_array();
+            // 定义下载流量数组
+            $download = [];
+            // 定义上传流量数组
+            $upload = [];
+            // 定义时间戳数组
+            $timeStamp = [];
+            
+            $receiveArray = $this->db->query("SELECT trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='receive' ORDER BY id DESC LIMIT 10");
+            $transmitArray = $this->db->query("SELECT trafficUsage FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='transmit' ORDER BY id DESC LIMIT 10");
+            $timeStampArray = $this->db->query("SELECT timeStamp FROM `traffic` WHERE interface='{$interfacesArray[$i]}' AND method ='transmit' ORDER BY id DESC LIMIT 10");
+            $downloadArray = $receiveArray->result_array();
+            $uploadArray = $transmitArray->result_array();
+            $timeArray = $timeStampArray->result_array();
+            
+            foreach ($downloadArray as $value) {
+                foreach($value as $name => $receive){
+                    $download[] = $receive;
+                }
+            }
+            
+            foreach ($uploadArray as $value) {
+                foreach($value as $name => $transmit){
+                    $upload[] = $transmit;
+                }
+            }
+            
+            foreach ($timeArray as $value) {
+                foreach($value as $name => $time){
+                    $timeStamp[] = $time;
+                }
+            }
+            
+            $download = array('download' => $download );
+            $upload = array('upload' => $upload );
+            $timeStamp = array('timeStamp' => $timeStamp );
+            
+            $jsonArray=array($download,$upload,$timeStamp);
+            $json[] = array($interfacesArray[$i] => $jsonArray);
         }
-        return $queryArray;
+        return array('data' => $json );
+        
         
     }
     
