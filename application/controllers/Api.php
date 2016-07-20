@@ -81,19 +81,19 @@ class Api extends CI_Controller {
             
             foreach ($downloadArray as $value) {
                 foreach($value as $name => $receive){
-                    $download[] = $receive;
+                    $download[] = (int)$receive;
                 }
             }
             
             foreach ($uploadArray as $value) {
                 foreach($value as $name => $transmit){
-                    $upload[] = $transmit;
+                    $upload[] = (int)$transmit;
                 }
             }
             
             foreach ($timeArray as $value) {
                 foreach($value as $name => $time){
-                    $timeStamp[] = $time;
+                    $timeStamp[] = (int)$time;
                 }
             }
             
@@ -104,7 +104,7 @@ class Api extends CI_Controller {
             $jsonArray=array($download,$upload,$timeStamp);
             $json[] = array($interfacesArray[$i] => $jsonArray);
         }
-        return array('data' => $json );
+        return array($json);
         
         
     }
