@@ -1,5 +1,5 @@
 <?php
-class Network extends CI_Controller {
+class Collector extends CI_Controller {
     
     //数据表 traffic 插入函数
     private function meta_insert($interface,$method,$timeStamp,$trafficUsage){
