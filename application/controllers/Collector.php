@@ -1,5 +1,5 @@
 <?php
-class Network extends CI_Controller {
+class Collector extends CI_Controller {
     
     //数据表 traffic 插入函数
     private function meta_insert($interface,$method,$timeStamp,$trafficUsage){
@@ -38,7 +38,7 @@ class Network extends CI_Controller {
     }
     
     //数据处理并插入 interface 表函数
-    public function collect_interface($trafficArray){
+    private function collect_interface($trafficArray){
         $query = $this->db->query('SELECT interface FROM interface');
         // 定义查询结果数组
         $queryArray = $query->result_array();
@@ -85,7 +85,7 @@ class Network extends CI_Controller {
         }
     }
     
-    public function traffic(){
+    private function traffic(){
         //网卡流量
         $strs = file("/proc/net/dev");
         $interfaces = [];
