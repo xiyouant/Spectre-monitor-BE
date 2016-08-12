@@ -4,6 +4,7 @@
 // domain_meta_query()->域名查询并处理
 // traffic_meta_query()->流量查询并处理
 // interface_meta_query()->网络接口查询并处理
+// queryServiceStatus()->Spectre 状态查询并处理
 //
 //
 # 封装接口 API 名称:
@@ -109,6 +110,63 @@ class Api extends CI_Controller {
         
     }
     
+    public function serviceStatus(){
+        $this->load->library('command');
+        // 命令
+        $getMemInfo = new Command('cat');
+        // 设置参数
+        $getMemInfo->setArgs("/proc/meminfo");
+        // 查询 tunnel 状态
+        $checkTunnelStatus = new Command('ps');
+        $checkTunnelStatus->setArgs("-aux|grep ss-tunnel");
+        // 查询 redir 状态
+        $checkRedirStatus = new Command('ps');
+        $checkRedirStatus->setArgs("-aux|grep ss-redir");
+        
+        if ($getMemInfo->execute()) {
+            // 去除空格
+            $memInfoStr = preg_replace("/\s|　/","",$getMemInfo->getOutput());
+            //分割
+            $memInfoStrArray = explode("kB", $memInfoStr);
+            $memInfoArray =[];
+            for ($i=0; $i < 3; $i++) {
+                //分割
+                $memInfoArray[$i] = explode(":", $memInfoStrArray[$i]);
+            }
+            if ($memInfoArray[0][0] == "MemTotal" && $memInfoArray[1][0] == "MemFree") {
+                $memInfo=array("available"=>intval($memInfoArray[2][1]),"free"=>intval($memInfoArray[1][1]),"total"=>intval($memInfoArray[0][1]));
+                // print_r($memInfo);
+            }
+        } else {
+            echo $getMemInfo->getError();
+            $exitCode = $getMemInfo->getExitCode();
+        }
+        
+        
+        if ($checkTunnelStatus->execute()) {
+            // echo $checkTunnelStatus->getOutput();
+            $tunnelAlive = substr_count($checkTunnelStatus->getOutput(), 'ss-tunnel') > 2 ? true: false;
+            
+        } else {
+            echo $checkTunnelStatus->getError();
+            $exitCode = $checkTunnelStatus->getExitCode();
+        }
+        
+        if ($checkRedirStatus->execute()) {
+            // echo $checkRedirStatus->getOutput();
+            $redirAlive = substr_count($checkRedirStatus->getOutput(), 'ss-redir') > 2 ? true: false;
+            
+        } else {
+            echo $checkRedirStatus->getError();
+            $exitCode = $checkRedirStatus->getExitCode();
+        }
+        
+        $serviceStatus = array('redir' => $redirAlive ,'tunnel' => $tunnelAlive ,'memInfo' => $memInfo);
+        return $serviceStatus;
+        
+    }
+    
+    
     //封装域名接口 json
     public function domain(){
         $response = $this->domain_meta_query();
@@ -132,6 +190,21 @@ class Api extends CI_Controller {
         ->_display();
         exit;
     }
+    
+    //封装 ServiceStatus 接口 json
+    public function queryServiceStatus(){
+        $response = $this->serviceStatus();
+        $this->output
+        ->set_status_header(200)
+        ->set_header('Access-Control-Allow-Origin: *')
+        ->set_header('Cache-Control: no-store, no-cache, must-revalidate')
+        ->set_header('Pragma: no-cache')
+        ->set_content_type('application/json', 'utf-8')
+        ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+        ->_display();
+        exit;
+    }
+    
     public function index(){
         $this->load->view('status');
     }
