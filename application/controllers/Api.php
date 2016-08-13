@@ -4,14 +4,50 @@
 // domain_meta_query()->域名查询并处理
 // traffic_meta_query()->流量查询并处理
 // interface_meta_query()->网络接口查询并处理
-// queryServiceStatus()->Spectre 状态查询并处理
-//
-//
-# 封装接口 API 名称:
-// domain()->单位时间内 http domain 访问 top10
-// traffic()->单位时间内网络接口流量情况 (默认满额为 top 10)
-//
-//
+// serviceStatus()->Spectre 状态查询并处理
+
+# 封装接口 API 以及返回格式:
+/* 
+domain()
+-->说明:单位时间内 http domain 访问 top10
+-->请求方式: get
+-->返回格式:对象数组
+
+traffic()
+-->说明:单位时间内网络接口流量情况 (默认满额为 top 10)
+-->请求方式: get
+-->返回格式:对象数组
+
+queryServiceStatus()
+-->说明:Spectre 运行状态查询
+-->请求方式: get
+-->返回格式: json
+{
+  "redir": false,
+  "tunnel": false,
+  "memInfo": {
+    "available": 8279168,
+    "free": 4971220,
+    "total": 12253692
+  }
+}
+
+serviceReload() 
+-->说明:服务(ss-tunnel||ss-redir)重新启动接口
+-->请求方式: post
+-->post 请求参数: restartService=重新启动的服务名称
+-->返回格式: json
+成功重启
+{
+  "restartService": "ss-redir",
+  "status": 0
+}
+重启失败
+{
+  "restartService": "ss-redir",
+  "status": 1
+}
+*/
 
 class Api extends CI_Controller {
     private function domain_meta_query(){
@@ -166,6 +202,104 @@ class Api extends CI_Controller {
         
     }
     
+    //服务重新启动
+    // nohup /usr/local/bin/ss-redir -c $configfile_path -d start >/dev/null 2>&1&
+    // nohup /usr/local/bin/ss-tunnel -c $configfile_path -l $ss_tunnel_port -u -L $ss_tunnel_address > /dev/null 2>&1&
+    // process_name configfile_path 参数必须给出,ss-tunnel 地址和 port 可选
+    public function serviceRestart($process_name,$configfile_path,$ss_tunnel_address="",$ss_tunnel_port=""){
+        $this->load->library('command');
+        if( $process_name == "ss-tunnel" && isset($configfile_path)){
+            $restartService = new Command('nohup /usr/local/bin/'+ $process_name + '-c' + $configfile_path + '-l' + $ss_tunnel_port + '-u -L' + $ss_tunnel_address + '> /dev/null 2>&1&');
+            if ($restartService->execute()) {
+                echo $checkRedirStatus->getOutput();
+                //执行成功
+                return 0;
+            }
+            else {
+                echo "ss-tunnel start failed  \n";
+                echo $restartService->getError();
+                $exitCode = $restartService->getExitCode();
+                //执行失败
+                return 1;
+            }
+        }
+        else if( $process_name == "ss-redir" && isset($configfile_path)){
+            $restartService = new Command('nohup /usr/local/bin/' + $process_name + '-c' + $configfile_path + '-d start' + '> /dev/null 2>&1&');
+            if ($restartService->execute()) {
+                echo $checkRedirStatus->getOutput();
+                //执行成功
+                return 0;
+            }
+            else {
+                echo "ss-redir start failed \n";
+                echo $restartService->getError();
+                $exitCode = $restartService->getExitCode();
+                //执行失败
+                return 1;
+            }
+        }
+        
+    }
+    
+    
+    //处理 Get 请求参数
+    public function resolveGet(){
+        //接受所有参数并经过 XSS 过滤 params= TRUE
+        //返回参数+ip 关联数组
+        $getParams = $this->input->get(NULL, TRUE);
+        $ip=array('ip' => $this->input->ip_address());
+        $params=array_merge_recursive($getParams,$ip);
+        // print_r($params);
+        return $params;
+    }
+    
+    //处理 Post 请求参数
+    public function resolvePost(){
+        $postParams=$this->input->post(NULL, TRUE);
+        $ip=array('ip' => $this->input->ip_address());
+        $params=array_merge_recursive($postParams,$ip);
+        // print_r($params);
+        return $params;
+    }
+    
+    public function serviceReload(){
+        $params = $this->resolvePost();
+        if (isset($params['restartService'])) {
+            //TODO
+            $statusCode = $this->serviceRestart($params['restartService'],"");
+            $this->callback($statusCode,$params['restartService']);
+        }
+        else {
+            return 0;
+        }
+    }
+    
+    
+    //服务启动后回调
+    /* 返回失败格式
+    {
+    "restartService": "",
+    "status": null
+    }
+    返回成功格式
+    {
+    "restartService": "重启的服务名称",
+    "status": 0
+    }
+    */
+    public function callback($statusCode,$restartService){
+        $response = array('restartService' => $restartService, 'status' => $statusCode);
+        $this->output
+        ->set_status_header(200)
+        ->set_header('Access-Control-Allow-Origin: *')
+        ->set_content_type('application/json', 'utf-8')
+        ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+        ->_display();
+        exit;
+    }
+    
+    
+    
     
     //封装域名接口 json
     public function domain(){
@@ -207,6 +341,11 @@ class Api extends CI_Controller {
     
     public function index(){
         $this->load->view('status');
+    }
+    
+    public function test()
+    {
+        $result=$this->serviceRestart('ss-tunnel','lalal');
     }
     
 }
