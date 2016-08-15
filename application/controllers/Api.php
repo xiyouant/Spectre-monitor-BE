@@ -32,7 +32,28 @@
 }
 }
 
-serviceReload()
+/api/ping?host=domain||IP
+-->说明:ping
+-->请求方式: get
+-->返回格式: json
+{
+"bytes": "64",
+"ip": "ip",
+"icmp_seq": "1",
+"ttl": "48",
+"time": "318",
+"host": "host",
+"tx": "1",
+"rx": "1",
+"loss": "0",
+"static_time": "0",
+"min": "318.499",
+"avg": "318.499",
+"max": "318.499",
+"mdev": "0.000"
+}
+
+/api/serviceReload
 -->说明:服务(ss-tunnel||ss-redir)重新启动接口
 -->请求方式: post
 -->post 请求参数: restartService=重新启动的服务名称
@@ -52,6 +73,7 @@ serviceReload()
 class Api extends CI_Controller {
     
     /************************ utils function ********************************************/
+    
     //输出 json
     private function jsonOutput($data){
         $this->output
@@ -86,10 +108,59 @@ class Api extends CI_Controller {
     }
     
     
+    private function pong($host){
+        $this->load->library('command');
+        // 命令
+        $ping = new Command('ping');
+        // 设置参数
+        $ping->setArgs('-c 1 ' . $host);
+        if ($ping->execute()) {
+            $result = $ping->getOutput();
+            //成功执行
+            if($ping->getExecuted()){
+                //This regex will grab each ping line.
+                $pingLineRegex = "/([0-9]+) bytes from (.+): icmp_seq=([0-9]+) ttl=([0-9]+) time=([0-9\.]+) ms/";
+                //This regex grabs the aggregated results at the bottom.
+                $pingResultRegex = $re = "/--- (.+) ping statistics ---\\n([0-9]+) packets transmitted, ([0-9]+) received, ([0-9\\.]+)% packet loss, time ([0-9]+)ms\\nrtt min\\/avg\\/max\\/mdev = ([0-9\\.]+)\\/([0-9\\.]+)\\/([0-9\\.]+)\\/([0-9\\.]+) ms/";
+                
+                preg_match_all($pingLineRegex, $result, $pingLineMatches);
+                $pingsLineResult= array(
+                'bytes' => $pingLineMatches[1][0],
+                'ip' => $pingLineMatches[2][0],
+                'icmp_seq' => $pingLineMatches[3][0],
+                'ttl' => $pingLineMatches[4][0],
+                'time' => $pingLineMatches[5][0],
+                );
+                
+                preg_match_all($pingResultRegex, $result, $pingResultMatches);
+                $pingStatistics = array(
+                'host' => $pingResultMatches[1][0],
+                'tx' => $pingResultMatches[2][0],
+                'rx' => $pingResultMatches[3][0],
+                'loss' => $pingResultMatches[4][0],
+                'static_time' => $pingResultMatches[5][0],
+                'min' => $pingResultMatches[6][0],
+                'avg' => $pingResultMatches[7][0],
+                'max' => $pingResultMatches[8][0],
+                'mdev' => $pingResultMatches[9][0],
+                );
+                return array_merge_recursive($pingsLineResult,$pingStatistics);
+            }
+            
+            
+        }
+        else {
+            $exitCode = $ping->getExitCode();
+            return array(
+            'errorCode' => 1000 ,
+            'message' => 'ping failed'
+            );
+            
+        }
+    }
+    
     
     /************************ DB and file process function ********************************************/
-    
-    
     
     private function domain_meta_query(){
         $query = $this->db->query('SELECT id,url,count,startTimestamp,endTimestamp FROM metadata');
@@ -174,7 +245,6 @@ class Api extends CI_Controller {
             $download = array('download' => $download );
             $upload = array('upload' => $upload );
             $timeStamp = array('timeStamp' => $timeStamp );
-            
             $jsonArray=array($download,$upload,$timeStamp);
             $json[] = array($interfacesArray[$i] => $jsonArray);
         }
@@ -210,7 +280,7 @@ class Api extends CI_Controller {
                 // print_r($memInfo);
             }
         } else {
-            echo $getMemInfo->getError();
+            // echo $getMemInfo->getError();
             $exitCode = $getMemInfo->getExitCode();
         }
         
@@ -220,7 +290,7 @@ class Api extends CI_Controller {
             $tunnelAlive = substr_count($checkTunnelStatus->getOutput(), 'ss-tunnel') > 2 ? true: false;
             
         } else {
-            echo $checkTunnelStatus->getError();
+            // echo $checkTunnelStatus->getError();
             $exitCode = $checkTunnelStatus->getExitCode();
         }
         
@@ -229,7 +299,7 @@ class Api extends CI_Controller {
             $redirAlive = substr_count($checkRedirStatus->getOutput(), 'ss-redir') > 2 ? true: false;
             
         } else {
-            echo $checkRedirStatus->getError();
+            // echo $checkRedirStatus->getError();
             $exitCode = $checkRedirStatus->getExitCode();
         }
         
@@ -246,7 +316,7 @@ class Api extends CI_Controller {
     private function serviceRestart($process_name,$configfile_path,$ss_tunnel_address="",$ss_tunnel_port=""){
         $this->load->library('command');
         if( $process_name == "ss-tunnel" && isset($configfile_path)){
-            $restartService = new Command('nohup /usr/local/bin/'+ $process_name + '-c' + $configfile_path + '-l' + $ss_tunnel_port + '-u -L' + $ss_tunnel_address + '> /dev/null 2>&1&');
+            $restartService = new Command('nohup /usr/local/bin/' . $process_name . '-c' . $configfile_path . '-l' . $ss_tunnel_port . '-u -L' . $ss_tunnel_address . '> /dev/null 2>&1&');
             if ($restartService->execute()) {
                 echo $checkRedirStatus->getOutput();
                 //执行成功
@@ -261,7 +331,7 @@ class Api extends CI_Controller {
             }
         }
         else if( $process_name == "ss-redir" && isset($configfile_path)){
-            $restartService = new Command('nohup /usr/local/bin/' + $process_name + '-c' + $configfile_path + '-d start' + '> /dev/null 2>&1&');
+            $restartService = new Command('nohup /usr/local/bin/' . $process_name . '-c' . $configfile_path . '-d start' . '> /dev/null 2>&1&');
             if ($restartService->execute()) {
                 echo $checkRedirStatus->getOutput();
                 //执行成功
@@ -275,10 +345,11 @@ class Api extends CI_Controller {
                 return 0;
             }
         }
+        else {
+            echo "service name is empty";
+        }
         
     }
-    
-    
     
     
     //封装重启服务回调接口 json
@@ -317,14 +388,14 @@ class Api extends CI_Controller {
     public function query()
     {
         $params = $this->resolveRequest();
-        if ($params['method'] == 'get'){
+        if ($params['method'] == 'get' && count($params) > 2){
             if ($params['query']== 'traffic') {
                 $this->traffic();
             }
-            elseif ($params['query']== 'domain') {
+            elseif ($params['query'] == 'domain') {
                 $this->domain();
             }
-            elseif ($params['query']== 'serviceStatus') {
+            elseif ($params['query'] == 'serviceStatus') {
                 $this->serviceStatus();
             }
         }
@@ -339,8 +410,21 @@ class Api extends CI_Controller {
             $this->callback($statusCode,$params['restartService']);
         }
         else {
+            echo "service name parameter is empty";
             return 0;
         }
+    }
+    
+    //ping 接口
+    public function ping()
+    {
+        $params = $this->resolveRequest();
+        if ($params['method'] == 'get' && count($params) > 2){
+            if (isset($params['host'])) {
+                $this->jsonOutput($this->pong($params['host']));
+            }
+        }
+        
     }
     
     // 视图
