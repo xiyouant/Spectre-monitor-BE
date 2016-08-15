@@ -22,7 +22,42 @@ local_port: "1080",
 timeout: "600",
 method: "aes-256-cfb",
 auth: "0"}]
+
+/setting/createProfile
+-->说明:新建 profile
+-->请求方式: post
+-->post 请求参数: json
+-->返回格式: json(修改后的对象数组)
+{
+"profile_name": "config-no-2",
+"server_address": "<scrip></scrip>",
+"server_port": "9128",
+"password": "985265",
+"local_port": "1080",
+"timeout": "600",
+"method": "aes-256-cfb",
+"auth": "0"
+}
+
+
+/setting/updateProfile
+-->说明:更新 profile
+-->请求方式: post
+-->post 请求参数: json
+-->返回格式: json(修改后的对象数组)
+{
+"profile_name": "config-no-2",
+"server_address": "<scrip></scrip>",
+"server_port": "9128",
+"password": "985265",
+"local_port": "1080",
+"timeout": "600",
+"method": "aes-256-cfb",
+"auth": "0"
+}
+
 */
+
 
 class Setting extends CI_Controller {
     /************************ utils function ********************************************/
@@ -41,29 +76,69 @@ class Setting extends CI_Controller {
     //处理 Delete 请求
     public function resolveDel(){
         if ($this->input->method() == "delete") {
-            // $jsonArray = $this->input->input_stream();
             print_r ($this->input->raw_input_stream);
-            // return $jsonArray;
         }
         else{
             return 0;
         }
     }
+    
     //处理 Post 和 Get 请求函数
     //返回参数与 ip 构成的关联数组
     public function resolveRequest(){
+        $ip=array('ip' => $this->input->ip_address());
         if ($this->input->method() == "get") {
             $params = $this->input->get(NULL, TRUE);
         }
+        elseif ($this->input->method() == "post" && $this->input->get_request_header('Content-Type', TRUE) == "application/json") {
+            $params = $this->security->xss_clean($this->input->raw_input_stream);
+            return json_decode($params,true);
+        }
         elseif ($this->input->method() == "post") {
             $params = $this->input->post(NULL, TRUE);
+            return array_merge_recursive($params,$ip);
         }
         else{
             return 0;
         }
-        $ip=array('ip' => $this->input->ip_address());
-        return array_merge_recursive($params,$ip);
+        
     }
+    
+    //     $data = array(
+    // 'id' =>'1',
+    // 'profile_name' => 'config-no-2',
+    // 'server_address' => '<scrip></scrip>',
+    // 'server_port'=> '8888',
+    // 'password'=> '888888',
+    // 'local_port'=> '1080',
+    // 'timeout'=> '600',
+    // 'method'=> '',
+    // 'auth'=> '0');
+    public function updateDB($data){
+        $this->db->replace('socks_config', $data);
+        return $data;
+    }
+    
+    
+    //DB 插入函数
+    public function insertDB($data){
+        if (isset($data['profile_name']) && isset($data['server_address'])) {
+            $insertData= array(
+            'profile_name' => $data['profile_name'],
+            'server_address' => $data['server_address'],
+            'server_port' => $data['server_port'],
+            'password' => $data['password'],
+            'local_port' => $data['local_port'],
+            'timeout' => $data['timeout'],
+            'method' => $data['method'],
+            'auth' => $data['auth']
+            );
+            $this->db->insert('socks_config', $insertData);
+            return $data;
+        }
+        
+    }
+    
     
     //DB 查询 参数:$params 调用 $this->db->get 方法
     public function queryDB($params){
@@ -101,6 +176,20 @@ class Setting extends CI_Controller {
     public function getProfile(){
         $objectArray = $this->queryDB('socks_config');
         $this->jsonOutput($objectArray);
+    }
+    //创建 profile 接口
+    public function createProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->insertDB($data);
+        $this->jsonOutput($objectArray);
+    }
+    
+    //更新 profile 接口
+    public function updateProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->updateDB($data);
+        $this->jsonOutput($objectArray);
+        
     }
     
     //视图区域
