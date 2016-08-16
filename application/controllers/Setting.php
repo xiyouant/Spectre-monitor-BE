@@ -27,7 +27,7 @@ auth: "0"}]
 -->说明:新建 profile
 -->请求方式: post
 -->post 请求参数: json
--->返回格式: json(修改后的对象数组)
+-->返回格式: json(新创建的对象数组)
 {
 "profile_name": "config-no-2",
 "server_address": "<scrip></scrip>",
@@ -56,10 +56,23 @@ auth: "0"}]
 "auth": "0"
 }
 
+/setting/deleteProfile
+-->说明:删除 profile 接口
+-->请求方式: post
+-->post 请求参数
+profileName=将要删除的 profile 名字
+truncate=boolean 是否要重置整个配置
+-->返回格式:json()
+{
+"deleteProfile"="将要删除的 profile 名字",
+"truncate" = boolean,
+"status" = 0||1
+}
 */
 
 
 class Setting extends CI_Controller {
+    
     /************************ utils function ********************************************/
     
     //处理 PUT 请求
@@ -73,6 +86,8 @@ class Setting extends CI_Controller {
             return 0;
         }
     }
+    
+    
     //处理 Delete 请求
     public function resolveDel(){
         if ($this->input->method() == "delete") {
@@ -104,16 +119,7 @@ class Setting extends CI_Controller {
         
     }
     
-    //     $data = array(
-    // 'id' =>'1',
-    // 'profile_name' => 'config-no-2',
-    // 'server_address' => '<scrip></scrip>',
-    // 'server_port'=> '8888',
-    // 'password'=> '888888',
-    // 'local_port'=> '1080',
-    // 'timeout'=> '600',
-    // 'method'=> '',
-    // 'auth'=> '0');
+    
     public function updateDB($data){
         $this->db->replace('socks_config', $data);
         return $data;
@@ -157,6 +163,44 @@ class Setting extends CI_Controller {
         
     }
     
+    
+    public function searchDB($prop, $params){
+        $this->db->select('*');
+        $this->db->from('socks_config');
+        $this->db->where($prop, $params);
+        $query = $this->db->get();
+        $objectArray = [];
+        foreach ($query->result() as $row)
+        {
+            array_push($objectArray,$row);
+        }
+        return count($objectArray);
+    }
+    
+    
+    public function deleteDB($params)
+    {
+        if(isset($params['profileName']) && $params['truncate'] == "false"){
+            if ($this->searchDB("profile_name",$params['profileName'])){
+                $this->db->delete('socks_config', array('profile_name' => $params['profileName']));
+                return array('deleteProfile'=> $params['profileName'] , 'truncate' => false, 'status' => 1);
+            }
+            else {
+                return array(
+                'deleteProfile' =>$params['profileName'],
+                'truncate'=>false,
+                'status'=>0 );
+                
+            }
+            
+        }
+        else if(isset($params['truncate']) && $params['truncate'] == "true"){
+            $this->db->truncate('socks_config');
+            return array('truncate' => true, 'status' => 1);
+        }
+    }
+    
+    
     public function jsonOutput($data){
         $this->output
         ->set_status_header(200)
@@ -191,7 +235,13 @@ class Setting extends CI_Controller {
         $this->jsonOutput($objectArray);
         
     }
-    
+    //删除 profile 接口
+    public function deleteProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->deleteDB($data);
+        $this->jsonOutput($objectArray);
+        
+    }
     //视图区域
     public function index(){
         $this->load->view('setting_view');
