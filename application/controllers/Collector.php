@@ -46,11 +46,11 @@ class Collector extends CI_Controller {
         $queryArraylength = count($queryArray);
         // 如果 interface 表为空则插入
         if ($queryArraylength == 0) {
-            $interfaces=array();
+            $interfaces = array();
             foreach($trafficArray[0]  as $interface => $value){
-                $interfaces[]=$interface;
+                $interfaces[] = $interface;
             }
-            for ($i=0; $i < (count($interfaces) -2) ; $i++) {
+            for ($i = 0; $i < (count($interfaces) -2) ; $i++) {
                 $this->interface_meta_insert($interfaces[$i]);
             }
         }
@@ -90,9 +90,9 @@ class Collector extends CI_Controller {
         $strs = file("/proc/net/dev");
         $interfaces = [];
         $transmit = [];
-        $receive =[];
-        $combineArray=[];
-        for ($i = 2,$j=0; $i < count($strs); $i++,$j++ )
+        $receive = [];
+        $combineArray = [];
+        for ($i = 2,$j = 0; $i < count($strs); $i++,$j++ )
         {
             preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
             // interfaces

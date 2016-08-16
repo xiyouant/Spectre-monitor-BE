@@ -15,16 +15,97 @@
 
 [{id: "1",
 profile_name: "config-no-1",
-server_address: "159.203.225.72",
-server_port: "9128",
-password: "985265",
-local_port: "1080",
-timeout: "600",
-method: "aes-256-cfb",
+server_address: "",
+server_port: "",
+password: "",
+local_port: "",
+timeout: "",
+method: "",
 auth: "0"}]
+
+/setting/createProfile
+-->说明:新建 profile
+-->请求方式: post
+-->post 请求参数: json
+-->返回格式: json(新创建的对象数组)
+新建成功:
+{
+"profile_name": "新创建的 profile 名",
+"server_address": "",
+"server_port": "",
+"password": "",
+"local_port": "",
+"timeout": "",
+"method": "",
+"auth": "0"
+}
+
+
+/setting/updateProfile
+-->说明:更新 profile
+-->请求方式: post
+-->post 请求参数: json
+-->返回格式: json(修改后的对象数组)
+更新成功(返回更新后的配置):
+{
+"profile_name": "",
+"server_address": "",
+"server_port": "",
+"password": "",
+"local_port": "",
+"timeout": "",
+"method": "",
+"auth": "0"
+}
+更新失败:
+{
+"updateProfile": "con9",
+"status": 0
+}
+
+/setting/deleteProfile
+-->说明:删除 profile 接口
+-->请求方式: post
+-->post 请求参数
+profileName=将要删除的 profile 名字
+truncate=boolean 是否要重置整个配置
+-->返回格式:json()
+删除成功:
+{
+"deleteProfile"="将要删除的 profile 名字",
+"truncate" = boolean,
+"status" = 1
+}
+删除失败:
+{
+"deleteProfile"="将要删除的 profile 名字",
+"truncate" = boolean,
+"status" = 1
+}
+
+/setting/activateProfile
+-->说明:启动 profile 接口
+-->请求方式: post
+-->post 请求参数
+profileName=将要启动的 profile 名字
+-->返回格式:json()
+启动成功:
+{
+"activeProfile"="已经启动的 profile 名字",
+"status" = 1
+}
+失败启动:
+{
+"activeProfile"="将要启动的 profile 名字",
+"status" = 0,
+"message" = "错误信息"
+}
+
 */
 
+
 class Setting extends CI_Controller {
+    
     /************************ utils function ********************************************/
     
     //处理 PUT 请求
@@ -38,32 +119,72 @@ class Setting extends CI_Controller {
             return 0;
         }
     }
+    
+    
     //处理 Delete 请求
     public function resolveDel(){
         if ($this->input->method() == "delete") {
-            // $jsonArray = $this->input->input_stream();
             print_r ($this->input->raw_input_stream);
-            // return $jsonArray;
         }
         else{
             return 0;
         }
     }
+    
     //处理 Post 和 Get 请求函数
     //返回参数与 ip 构成的关联数组
     public function resolveRequest(){
+        $ip=array('ip' => $this->input->ip_address());
         if ($this->input->method() == "get") {
             $params = $this->input->get(NULL, TRUE);
         }
+        elseif ($this->input->method() == "post" && $this->input->get_request_header('Content-Type', TRUE) == "application/json") {
+            $params = $this->security->xss_clean($this->input->raw_input_stream);
+            return json_decode($params,true);
+        }
         elseif ($this->input->method() == "post") {
             $params = $this->input->post(NULL, TRUE);
+            return array_merge_recursive($params,$ip);
         }
         else{
             return 0;
         }
-        $ip=array('ip' => $this->input->ip_address());
-        return array_merge_recursive($params,$ip);
+        
     }
+    
+    //DB 更新函数
+    public function updateDB($data){
+        if(isset($data) && $this->searchDB("profile_name",$data['profile_name'], "socks_config")){
+            $this->db->replace('socks_config', $data);
+            return $data;
+        }
+        else {
+            return array(
+            'updateProfile' =>$data['profile_name'],
+            'status'=>0 );
+        }
+    }
+    
+    
+    //DB 插入函数
+    public function insertDB($data){
+        if (isset($data['profile_name']) && isset($data['server_address'])) {
+            $insertData= array(
+            'profile_name' => $data['profile_name'],
+            'server_address' => $data['server_address'],
+            'server_port' => $data['server_port'],
+            'password' => $data['password'],
+            'local_port' => $data['local_port'],
+            'timeout' => $data['timeout'],
+            'method' => $data['method'],
+            'auth' => $data['auth']
+            );
+            $this->db->insert('socks_config', $insertData);
+            return $data;
+        }
+        
+    }
+    
     
     //DB 查询 参数:$params 调用 $this->db->get 方法
     public function queryDB($params){
@@ -82,6 +203,43 @@ class Setting extends CI_Controller {
         
     }
     
+    //查找键值 $prop=表中键值 $params=传入键值 $table=表名
+    public function searchDB($prop, $params, $table){
+        $this->db->select('*');
+        $this->db->from($table);
+        $this->db->where($prop, $params);
+        $query = $this->db->get();
+        $objectArray = [];
+        foreach ($query->result() as $row)
+        {
+            array_push($objectArray,$row);
+        }
+        return count($objectArray);
+    }
+    
+    //DB 删除函数
+    public function deleteDB($params){
+        if(isset($params['profileName']) && $params['truncate'] == "false"){
+            if ($this->searchDB("profile_name",$params['profileName'], "socks_config")){
+                $this->db->delete('socks_config', array('profile_name' => $params['profileName']));
+                return array('deleteProfile'=> $params['profileName'] , 'truncate' => false, 'status' => 1);
+            }
+            else {
+                return array(
+                'deleteProfile' =>$params['profileName'],
+                'truncate'=>false,
+                'status'=>0 );
+                
+            }
+            
+        }
+        else if(isset($params['truncate']) && $params['truncate'] == "true"){
+            $this->db->truncate('socks_config');
+            return array('truncate' => true, 'status' => 1);
+        }
+    }
+    
+    
     public function jsonOutput($data){
         $this->output
         ->set_status_header(200)
@@ -94,6 +252,26 @@ class Setting extends CI_Controller {
         exit;
     }
     
+    /************************ Process activate ****************************************/
+    
+    public function activateProcess($params){
+        if (isset($params['profileName']) && $this->searchDB("profile_name",$params['profileName'], "socks_config")){
+            #TODO
+        }else{
+            return array(
+            'activeProfile' => $params['profileName'],
+            'status' => 0,
+            'message' => '配置文件不存在或者参数为空');
+        }
+    }
+    //$data=$array
+    public function writeToFile($path,$data){
+        $this->load->helper('file');
+        write_file($path, $data);
+        print_r("lll");
+    }
+    
+    
     
     /************************ API function ********************************************/
     
@@ -102,7 +280,33 @@ class Setting extends CI_Controller {
         $objectArray = $this->queryDB('socks_config');
         $this->jsonOutput($objectArray);
     }
-    
+    //创建 profile 接口
+    public function createProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->insertDB($data);
+        $this->jsonOutput($objectArray);
+    }
+    //更新 profile 接口
+    public function updateProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->updateDB($data);
+        $this->jsonOutput($objectArray);
+        
+    }
+    //删除 profile 接口
+    public function deleteProfile(){
+        $data = $this->resolveRequest();
+        $objectArray = $this->deleteDB($data);
+        $this->jsonOutput($objectArray);
+        
+    }
+    //激活 profile 接口
+    public function activateProfile(){
+        $data = $this->resolveRequest();
+        $this->activateProcess($data);
+        // $this->jsonOutput($objectArray);
+        // print_r($objectArray);
+    }
     //视图区域
     public function index(){
         $this->load->view('setting_view');

@@ -36,6 +36,7 @@
 -->说明:ping
 -->请求方式: get
 -->返回格式: json
+ping 成功:
 {
 "bytes": "64",
 "ip": "ip",
@@ -53,12 +54,18 @@
 "mdev": "0.000"
 }
 
+ping 失败:
+{
+"status": 0,
+"message": "ping failed"
+}
+
 /api/serviceReload
 -->说明:服务(ss-tunnel||ss-redir)重新启动接口
 -->请求方式: post
 -->post 请求参数: restartService=重新启动的服务名称
 -->返回格式: json
-成功重启
+重启成功:
 {
 "restartService": "ss-redir",
 "status": 1
@@ -152,13 +159,12 @@ class Api extends CI_Controller {
         else {
             $exitCode = $ping->getExitCode();
             return array(
-            'errorCode' => 1000 ,
+            'errorCode' => 0 ,
             'message' => 'ping failed'
             );
             
         }
     }
-    
     
     /************************ DB and file process function ********************************************/
     
@@ -251,6 +257,7 @@ class Api extends CI_Controller {
         return array($json);
         
     }
+    
     
     private function getServiceStatus(){
         $this->load->library('command');
@@ -371,11 +378,13 @@ class Api extends CI_Controller {
         $this->jsonOutput($response);
     }
     
+    
     //封装流量接口 json
     private function traffic(){
         $response = $this->traffic_meta_query();
         $this->jsonOutput($response);
     }
+    
     
     //封装 ServiceStatus 接口 json
     private function serviceStatus(){
@@ -400,6 +409,7 @@ class Api extends CI_Controller {
             }
         }
     }
+    
     
     //重启服务接口
     public function serviceReload(){
@@ -427,8 +437,8 @@ class Api extends CI_Controller {
         
     }
     
-    // 视图
     
+    // 视图
     public function index(){
         $this->load->view('status');
     }
