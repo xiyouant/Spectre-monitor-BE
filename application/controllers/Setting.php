@@ -131,8 +131,13 @@ class Setting extends CI_Controller {
         }
     }
     
-    //处理 Post 和 Get 请求函数
-    //返回参数与 ip 构成的关联数组
+    
+    /**
+    * 解析 HTTP post 以及 get 请求
+    *
+    * @return array                   对应请求的参数数组,同时包含请求 IP
+    *
+    */
     public function resolveRequest(){
         $ip=array('ip' => $this->input->ip_address());
         if ($this->input->method() == "get") {
@@ -152,7 +157,12 @@ class Setting extends CI_Controller {
         
     }
     
-    //DB 更新函数
+    /**
+    * 更新 DB 中的配置文件
+    * @param  array       $data       将要更新的配置文件
+    * @return array                   成功更新后的数组
+    *
+    */
     public function updateDB($data){
         if(isset($data) && $this->searchDB("profile_name",$data['profile_name'], "socks_config")){
             $this->db->replace('socks_config', $data);
@@ -165,8 +175,12 @@ class Setting extends CI_Controller {
         }
     }
     
-    
-    //DB 插入函数
+    /**
+    * 插入配置文件至 DB
+    * @param  array       $data       将要插入的配置文件
+    * @return array                   成功插入后的数组
+    *
+    */
     public function insertDB($data){
         if (isset($data['profile_name']) && isset($data['server_address'])) {
             $insertData= array(
@@ -185,8 +199,13 @@ class Setting extends CI_Controller {
         
     }
     
-    
-    //DB 查询 参数:$params 调用 $this->db->get 方法
+    /**
+    * 数据库查询
+    *
+    * @param string        $params     表名
+    * @return array                    查找结果0
+    *
+    */
     public function queryDB($params){
         if (isset($params)) {
             $objectArray = [];
@@ -203,24 +222,38 @@ class Setting extends CI_Controller {
         
     }
     
-    //查找键值 $prop=表中键值 $params=传入键值 $table=表名
+    /**
+    * 查找数据库表的键值
+    *
+    * @param string        $prop       数据表中存在的字段
+    * @param string        $params     传入的键值
+    * @param string        $table      表名
+    * @return array                   查找结果
+    *
+    */
     public function searchDB($prop, $params, $table){
         $this->db->select('*');
         $this->db->from($table);
         $this->db->where($prop, $params);
         $query = $this->db->get();
         $objectArray = [];
-        foreach ($query->result() as $row)
+        foreach ($query->result_array() as $row)
         {
             array_push($objectArray,$row);
         }
-        return count($objectArray);
+        return $objectArray;
     }
     
-    //DB 删除函数
+    /**
+    * 删除配置文件
+    *
+    * @param  array        $params     即将删除的配置文件
+    * @return array                    成功则返回删除文件信息,失败则返回失败信息
+    *
+    */
     public function deleteDB($params){
         if(isset($params['profileName']) && $params['truncate'] == "false"){
-            if ($this->searchDB("profile_name",$params['profileName'], "socks_config")){
+            if (count($this->searchDB("profile_name",$params['profileName'], "socks_config"))){
                 $this->db->delete('socks_config', array('profile_name' => $params['profileName']));
                 return array('deleteProfile'=> $params['profileName'] , 'truncate' => false, 'status' => 1);
             }
@@ -239,7 +272,13 @@ class Setting extends CI_Controller {
         }
     }
     
-    
+    /**
+    * 封装并输出 Json
+    *
+    * @param array         $data       将要输出的数据
+    * @return
+    *
+    */
     public function jsonOutput($data){
         $this->output
         ->set_status_header(200)
@@ -253,10 +292,22 @@ class Setting extends CI_Controller {
     }
     
     /************************ Process activate ****************************************/
-    
+    //判断请求是否合理 done
+    //合理则关闭正在运行的配置文件 done
+    //检查正在运行的文件配置将 active 置为 0,同时将新的配置 active 置为 1,
+    //输出配置 json 到 swap
+    //从 swap 中启动新的配置文件
+    //检查新的配置是否运行
+    //返回回调
     public function activateProcess($params){
-        if (isset($params['profileName']) && $this->searchDB("profile_name",$params['profileName'], "socks_config")){
-            #TODO
+        if (isset($params['profileName']) && count($this->searchDB("profile_name",$params['profileName'], "socks_config"))){
+            $activeProfile = $this->searchDB("active", "1", "socks_config");
+            if ($activeProfile[0]['profile_name'] == $params['profileName']) {
+                $this->killProcess($activeProfile[0]['profile_name']);
+                #TODO
+            }
+            
+            
         }else{
             return array(
             'activeProfile' => $params['profileName'],
@@ -264,11 +315,87 @@ class Setting extends CI_Controller {
             'message' => '配置文件不存在或者参数为空');
         }
     }
-    //$data=$array
-    public function writeToFile($path,$data){
+    
+    /**
+    * 检查进程是否运行
+    *
+    * @param string        $processName       进程名
+    * @param string        $profileName       进程使用的配置文件名无需加扩展名json
+    * @return array(
+    *               'status' => 0或1,
+    *               'processName'=>$processName,
+    *               'profileName'=>$profileName);
+    *
+    */
+    public function checkProcess($processName,$profileName){
+        $this->load->library('command');
+        $getprocessInfo = new Command('ps');
+        $getprocessInfo -> setArgs('-aux|grep ' . $processName);
+        if ($getprocessInfo->execute()){
+            $getprocessInfo->getOutput();
+            $status = substr_count($getprocessInfo->getOutput(), $processName) > 2 ? 1: 0;
+            if (substr_count($getprocessInfo->getOutput(), $profileName . ".json")!==0){
+                print_r(array('status' => $status,'processName'=>$processName,'profileName'=>$profileName));
+                return array('status' => $status,'processName'=>$processName,'profileName'=>$profileName);
+            };
+        }
+        else {
+            return array(
+            'status' => 0,
+            'processName'=>$processName,
+            'profileName'=>$profileName);
+        }
+    }
+    
+    /**
+    * 杀死进程
+    *
+    * @param string        $processName       进程名
+    * @return array(
+    *               'status' => 0或1,
+    *               'processName'=>$processName);
+    *
+    */
+    public function killProcess($processName){
+        $this->load->library('command');
+        $killProcess = new Command('sudo kill');
+        $killProcess -> setArgs("-9 `ps -aux|grep " . $processName . "|awk '/\.json/{print $2}'`");
+        if ($killProcess->execute()){
+            echo $killProcess->getOutput();
+            
+        }
+        else {
+            //command 的 bug $killProcess 已经执行
+            echo $killProcess;
+            return array(
+            'status' => 1,
+            'processName'=>$processName);
+        }
+    }
+    
+    public function test(){
+        $data = $this->resolveRequest();
+        $this->activateProcess($data);
+    }
+    
+    // public function test(){
+    //     $this->killProcess("ss-redir");
+    // }
+    
+    
+    /**
+    * 写入 Json 文件
+    *
+    * @param string        $path       写入的路径
+    * @param string        $fileName   写入的文件名,不存在则自动创建,无需加文件类型,
+    * @param array         $data       写入的数据
+    * @return
+    *
+    */
+    public function writeToFile($path,$fileName,$data){
         $this->load->helper('file');
-        write_file($path, $data);
-        print_r("lll");
+        write_file($path . $fileName . ".json", json_encode($data));
+        print_r("writeToFile success");
     }
     
     
