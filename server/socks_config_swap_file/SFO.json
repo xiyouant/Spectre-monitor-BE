@@ -1,0 +1,10 @@
+{
+    "server":"159.203.225.72",
+    "server_port":9128,
+    "local_port":1080,
+    "password":"985265",
+    "timeout":600,
+    "method":"aes-256-cfb",
+    "auth": false
+}
+
