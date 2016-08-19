@@ -22,7 +22,6 @@ class Setting extends CI_Controller {
         }
     }
     
-    
     //处理 Delete 请求
     public function resolveDel(){
         if ($this->input->method() == "delete") {
@@ -32,8 +31,7 @@ class Setting extends CI_Controller {
             return 0;
         }
     }
-    
-    
+
     /**
     * 解析 HTTP post 以及 get 请求
     *
@@ -224,7 +222,7 @@ class Setting extends CI_Controller {
     *                  'local_dns_listen_port'=> '',
     *                   );
     * nohup ss-redir -c $configfile_path  >/dev/null 2>&1&
-    * nohup ss-tunnel -c $configfile_path -l $ss_tunnel_port -u -L $ss_tunnel_address > /dev/null 2>&1&
+    * nohup ss-tunnel -c $configfile_info['configfile_path'] -l $configfile_info['local_dns_listen_port'] -u -L $configfile_info['ss_tunnel_address']:$configfile_info['ss_tunnel_port'] > /dev/null 2>&1&
     *
     **/
     public function serviceStart($configfile_info){
