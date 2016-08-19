@@ -25,7 +25,7 @@ user_guide/
 phpmyadmin/
 Timestamp/
 server/Capture_Package/
-server/socks_config_swap_file/
+server/socks_config_swap_file/*.json
 
 ################### DB files ###########################
 application/config/database.php
