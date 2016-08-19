@@ -48,16 +48,19 @@ mv Spectre-monitor-BE/* default
  - -->说明:Spectre 运行状态查询
  - -->请求方式: get
  - -->返回格式: json
-
+ 
+```
     {
     "redir": false,
     "tunnel": false,
-    "memInfo": {
-    "available": 8279168,
-    "free": 4971220,
-    "total": 12253692}
+    "memInfo": 
+            {
+            "available": 8279168,
+            "free": 4971220,
+            "total": 12253692
+        }
     }
-
+```
 
 **/api/ping?host=`domain||IP`**
 
@@ -142,7 +145,7 @@ ping 失败:
 新建成功:
 
     {
-    "profile_name": "新创建的 profile 名",
+    "profile_name": "新创建的 profile",
     "server_address" : "",
     "server_port": "",
     "password": "",
@@ -186,7 +189,7 @@ ping 失败:
  - -->请求方式: post
  - -->post 请求参数
 
-    `profileName` = 将要删除的 profile 名字
+    `profileName` = 将要删除的 profile 
     `truncate` = boolean 是否要重置整个配置
 
 -->返回格式:json()
@@ -194,7 +197,7 @@ ping 失败:
 删除成功:
 
     {
-    "deleteProfile"="将要删除的 profile 名字",
+    "deleteProfile"="将要删除的 profile",
     "truncate" = boolean,
     "status" = 1
     }
@@ -202,7 +205,7 @@ ping 失败:
 删除失败:
 
     {
-    "deleteProfile"="将要删除的 profile 名字",
+    "deleteProfile"="将要删除的 profile",
     "truncate" = boolean,
     "status" = 1
     }
@@ -210,25 +213,25 @@ ping 失败:
 
 **/setting/activateProfile**
 
- - -->说明:启动 profile 接口
+ - -->说明:激活 profile 接口
  - -->请求方式: post
  - -->post 请求参数
 
-    `profileName` = 将要启动的 profile 名字
+    `profileName` = 将要激活的 profile
 
  - -->返回格式:json()
 
-启动成功:
+激活成功:
 
     {
-    "activeProfile"="已经启动的 profile 名字",
+    "activeProfile"="已经激活的 profile",
     "status" = 1
     }
 
-启动失败:
+激活失败:
 
     {
-    "activeProfile"="将要启动的 profile 名字",
+    "activeProfile"="将要激活的 profile",
     "status" = 0,
     "message" = "错误信息"
     }
