@@ -31,7 +31,7 @@ class Setting extends CI_Controller {
             return 0;
         }
     }
-
+    
     /**
     * 解析 HTTP post 以及 get 请求
     *
@@ -192,7 +192,7 @@ class Setting extends CI_Controller {
     /**
     * 封装并输出 Json
     *
-    * @param array         $data       将要输出的数据
+    * @param array         $data       将要输出的数据 
     * @return
     *
     */
@@ -200,6 +200,7 @@ class Setting extends CI_Controller {
         $this->output
         ->set_status_header(200)
         ->set_header('Access-Control-Allow-Origin: *')
+        ->set_header('Last-Modified: '.gmdate('Y-m-d H:i:s', time() + 3600 * 8))
         ->set_header('Cache-Control: no-store, no-cache, must-revalidate')
         ->set_header('Pragma: no-cache')
         ->set_content_type('application/json', 'utf-8')
@@ -371,11 +372,6 @@ class Setting extends CI_Controller {
             'status' => 1,
             'processName'=>$processName);
         }
-    }
-    
-    public function test(){
-        $data = $this->resolveRequest();
-        $this->activateProcess($data);
     }
     
     

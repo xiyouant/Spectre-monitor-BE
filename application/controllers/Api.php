@@ -6,77 +6,6 @@
 // interface_meta_query()->网络接口查询并处理
 // getServiceStatus()->Spectre 状态查询并处理
 
-# 封装接口 API 以及返回格式:
-/*
-/api/query?query=domain
--->说明:单位时间内 http domain 访问 top10
--->请求方式: get
--->返回格式:对象数组
-
-/api/query?query=traffic
--->说明:单位时间内网络接口流量情况 (默认满额为 top 10)
--->请求方式: get
--->返回格式:对象数组
-
-/api/query?query=serviceStatus
--->说明:Spectre 运行状态查询
--->请求方式: get
--->返回格式: json
-{
-"redir": false,
-"tunnel": false,
-"memInfo": {
-"available": 8279168,
-"free": 4971220,
-"total": 12253692
-}
-}
-
-/api/ping?host=domain||IP
--->说明:ping
--->请求方式: get
--->返回格式: json
-ping 成功:
-{
-"bytes": "64",
-"ip": "ip",
-"icmp_seq": "1",
-"ttl": "48",
-"time": "318",
-"host": "host",
-"tx": "1",
-"rx": "1",
-"loss": "0",
-"static_time": "0",
-"min": "318.499",
-"avg": "318.499",
-"max": "318.499",
-"mdev": "0.000"
-}
-
-ping 失败:
-{
-"status": 0,
-"message": "ping failed"
-}
-
-/api/serviceReload
--->说明:服务(ss-tunnel||ss-redir)重新启动接口
--->请求方式: post
--->post 请求参数: restartService=重新启动的服务名称
--->返回格式: json
-重启成功:
-{
-"restartService": "ss-redir",
-"status": 1
-}
-重启失败
-{
-"restartService": "ss-redir",
-"status": 0
-}
-*/
-
 class Api extends CI_Controller {
     
     /************************ utils function ********************************************/
@@ -153,8 +82,6 @@ class Api extends CI_Controller {
                 );
                 return array_merge_recursive($pingsLineResult,$pingStatistics);
             }
-            
-            
         }
         else {
             $exitCode = $ping->getExitCode();
