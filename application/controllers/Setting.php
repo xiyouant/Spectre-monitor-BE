@@ -301,7 +301,7 @@ class Setting extends CI_Controller {
                 if ($status['status'] == 1){
                     return array(
                     'status' =>1 ,
-                    'profileName'=>$status['profileName']);
+                    'activeProfile'=>$status['profileName']);
                 }
                 else{
                     return array(
