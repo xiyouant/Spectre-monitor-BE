@@ -14,6 +14,22 @@ class Collector extends CI_Controller {
         $this->db->insert('traffic', $data);
     }
     
+    
+    
+    //数据表 eth0_realtime_traffic 插入函数
+    private function realtime_meta_insert($interface,$method,$timeStamp,$trafficUsage){
+        $data = array(
+        'interface' => $interface,
+        'method' => $method,
+        'timeStamp' => $timeStamp,
+        'trafficUsage' => $trafficUsage
+        );
+        // 生成这样的SQL代码:
+        // INSERT INTO mytable (title, name, date) VALUES ('{$title}', '{$name}', '{$date}')
+        $this->db->insert('eth0_realtime_traffic', $data);
+    }
+    
+    
     //数据表 interface 插入函数
     private function interface_meta_insert($interface){
         $data = array(
@@ -33,6 +49,10 @@ class Collector extends CI_Controller {
         }
         else if ($unit == "GB"){
             $result = round($bytes/1000/1000/1000, 5);
+        }
+        
+        else if ($unit == "KB"){
+            $result = round($bytes/1000, 2);
         }
         return $result;
     }
@@ -110,12 +130,15 @@ class Collector extends CI_Controller {
         return $trafficArray;
     }
     
+    
+    
+    
+    
     public function index(){
         $data = $this->traffic();
         $this->collect_traffic($data);
         $this->collect_interface($data);
         // $this->load->view('spectre');
-        
-        
     }
+    
 }
