@@ -9,7 +9,6 @@
 class Api extends CI_Controller {
     
     /************************ utils function ********************************************/
-    
     //输出 json
     private function jsonOutput($data){
         $this->output
@@ -23,6 +22,47 @@ class Api extends CI_Controller {
         exit;
     }
     
+    // 网卡流量元数据
+    private function traffic_KB(){
+        //网卡流量
+        $strs = file("/proc/net/dev");
+        $interfaces = [];
+        $transmit = [];
+        $receive = [];
+        $combineArray = [];
+        for ($i = 2,$j = 0; $i < count($strs); $i++,$j++ )
+        {
+            preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+            // interfaces
+            $interfaces[$j] = $info[1][0];
+            // transmit
+            $transmit[$interfaces[$j]] = $this->unit_convert($info[10][0],"KB");
+            // receive
+            $receive[$interfaces[$j]] = $this->unit_convert($info[2][0],"KB");
+        }
+        $transmit['timeStamp'] = time();
+        $transmit['method'] = "transmit";
+        $receive['timeStamp'] = time();
+        $receive['method'] = "receive";
+        $trafficArray = array($receive,$transmit);
+        return $trafficArray;
+    }
+    
+    //单位转换函数
+    private function unit_convert($bytes,$unit){
+        
+        if($unit == "MB"){
+            $result = round($bytes/1000/1000, 1);
+        }
+        else if ($unit == "GB"){
+            $result = round($bytes/1000/1000/1000, 5);
+        }
+        
+        else if ($unit == "KB"){
+            $result = round($bytes/1000, 2);
+        }
+        return $result;
+    }
     
     //处理 Post 和 Get 请求函数
     //返回参数与 ip 构成的关联数组
@@ -43,6 +83,50 @@ class Api extends CI_Controller {
         return array_merge_recursive($method,$params,$ip);
     }
     
+    private function curl($host){
+        $params = '-o /dev/null -s -w "
+        {
+            \"time_namelookup\":%{time_namelookup},
+            \"time_connect\":%{time_connect},
+            \"time_appconnect\":%{time_appconnect},
+            \"time_pretransfer\":%{time_pretransfer},
+            \"time_redirect\":%{time_redirect},
+            \"time_starttransfer\":%{time_starttransfer},
+            \"time_total\":%{time_total},
+            \"speed_download\": %{speed_download},
+            \"speed_upload\": %{speed_upload}
+        }"' . " " . $host;
+        $this->load->library('command');
+        // 命令
+        $curl = new Command('curl' );
+        $curl ->setArgs($params);
+        if ($curl->execute()) {
+            $result_string = $curl->getOutput();
+            $curl_meta = json_decode($result_string, true);
+            $curl_meta[range_connection] = $curl_meta['time_connect'] - $curl_meta['time_namelookup'];
+            $curl_meta[range_ssl] = $curl_meta['time_pretransfer'] - $curl_meta['time_connect'];
+            $curl_meta[range_server] = $curl_meta['time_starttransfer'] - $curl_meta['time_pretransfer'];
+            $curl_meta[range_transfer]=$curl_meta['time_total'] - $curl_meta['time_starttransfer'];
+            foreach ($curl_meta as $key => $value) {
+                $time_pattern="/(time_*)|(range_*)/";
+                $byte_pattern="/(speed_*)/";
+                // ms
+                if (preg_match($time_pattern, $key)) {
+                    $curl_meta[$key]=($value * 1000);
+                }
+                // KiB
+                if (preg_match($byte_pattern, $key)){
+                    $curl_meta[$key]=round(($value / 1024),3);
+                }
+            }
+            return $curl_meta;
+        } else {
+            return $exitCode = array(
+            'status' => 0,
+            'message'=>"host resolve failed"
+            );
+        }
+    }
     
     private function pong($host){
         $this->load->library('command');
@@ -363,11 +447,35 @@ class Api extends CI_Controller {
         }
         
     }
-    
-    
     // 视图
     public function index(){
         $this->load->view('status');
     }
     
+    //实时流量接口
+    public function realTimeTraffic(){
+        $data_before = $this->traffic_KB();
+        usleep(1000000);
+        $data_after = $this->traffic_KB();
+        $interface_count=count($data_before[0])-2;
+        foreach($data_before[0] as $key=>$value){
+            $receive_per_second[$key] = round($data_after[0][$key] - $data_before[0][$key],2);
+        }
+        foreach($data_before[1] as $key=>$value){
+            $transmit_per_second[$key] = round($data_after[1][$key] - $data_before[1][$key],2);
+        }
+        $response['receive']=array_splice($receive_per_second,0,$interface_count);
+        $response['transmit']=array_splice($transmit_per_second,0,$interface_count);
+        $this->jsonOutput($response);
+    }
+    
+    //http 信息统计
+    public function httpStat(){
+        $params = $this->resolveRequest();
+        if ($params['method'] == 'get' && count($params) > 2){
+            if (isset($params['host'])) {
+                $this->jsonOutput($this->curl($params['host']));
+            }
+        }
+    }
 }
