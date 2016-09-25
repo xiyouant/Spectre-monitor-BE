@@ -129,11 +129,6 @@ class Collector extends CI_Controller {
         $trafficArray = array($receive,$transmit);
         return $trafficArray;
     }
-    
-    
-    
-    
-    
     public function index(){
         $data = $this->traffic();
         $this->collect_traffic($data);

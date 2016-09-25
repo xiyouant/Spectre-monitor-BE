@@ -9,7 +9,7 @@
 class Api extends CI_Controller {
     
     /************************ utils function ********************************************/
-    //输出 json
+    // 输出 json
     private function jsonOutput($data){
         $this->output
         ->set_status_header(200)
@@ -24,7 +24,6 @@ class Api extends CI_Controller {
     
     // 网卡流量元数据
     private function traffic_KB(){
-        //网卡流量
         $strs = file("/proc/net/dev");
         $interfaces = [];
         $transmit = [];
@@ -103,10 +102,10 @@ class Api extends CI_Controller {
         if ($curl->execute()) {
             $result_string = $curl->getOutput();
             $curl_meta = json_decode($result_string, true);
-            $curl_meta[range_connection] = $curl_meta['time_connect'] - $curl_meta['time_namelookup'];
-            $curl_meta[range_ssl] = $curl_meta['time_pretransfer'] - $curl_meta['time_connect'];
-            $curl_meta[range_server] = $curl_meta['time_starttransfer'] - $curl_meta['time_pretransfer'];
-            $curl_meta[range_transfer]=$curl_meta['time_total'] - $curl_meta['time_starttransfer'];
+            $curl_meta['range_connection'] = $curl_meta['time_connect'] - $curl_meta['time_namelookup'];
+            $curl_meta['range_ssl'] = $curl_meta['time_pretransfer'] - $curl_meta['time_connect'];
+            $curl_meta['range_server'] = $curl_meta['time_starttransfer'] - $curl_meta['time_pretransfer'];
+            $curl_meta['range_transfer']=$curl_meta['time_total'] - $curl_meta['time_starttransfer'];
             foreach ($curl_meta as $key => $value) {
                 $time_pattern="/(time_*)|(range_*)/";
                 $byte_pattern="/(speed_*)/";
@@ -447,7 +446,7 @@ class Api extends CI_Controller {
         }
         
     }
-    // 视图
+    //视图
     public function index(){
         $this->load->view('status');
     }
@@ -455,14 +454,24 @@ class Api extends CI_Controller {
     //实时流量接口
     public function realTimeTraffic(){
         $data_before = $this->traffic_KB();
-        usleep(1000000);
+        usleep(500000);
         $data_after = $this->traffic_KB();
-        $interface_count=count($data_before[0])-2;
+        $interface_count=count($data_before[0])-1;
         foreach($data_before[0] as $key=>$value){
-            $receive_per_second[$key] = round($data_after[0][$key] - $data_before[0][$key],2);
+            if ($key !=="timeStamp") {
+                $receive_per_second[$key] = round(($data_after[0][$key] - $data_before[0][$key])*2,2);
+            }
+            else{
+                $receive_per_second[$key] = $data_after[0][$key];
+            }
         }
         foreach($data_before[1] as $key=>$value){
-            $transmit_per_second[$key] = round($data_after[1][$key] - $data_before[1][$key],2);
+            if ($key !=="timeStamp") {
+                $transmit_per_second[$key] = round(($data_after[1][$key] - $data_before[1][$key])*2,2);
+            }
+            else{
+                $transmit_per_second[$key] = $data_after[0][$key];
+            }
         }
         $response['receive']=array_splice($receive_per_second,0,$interface_count);
         $response['transmit']=array_splice($transmit_per_second,0,$interface_count);
@@ -478,4 +487,48 @@ class Api extends CI_Controller {
             }
         }
     }
+    
+    public function traceroute($host){
+        $this->load->library('command');
+        // 命令
+        $mtr = new Command('mtr -c 5 -r ');
+        $before_time = time();
+        $mtr ->setArgs($host . "|awk 'NR>2 {print $2,$3,$4,$5,$6,$7,$8}'");
+        if ($mtr->execute()) {
+            $result_string = $mtr->getOutput();
+            $after_time = time();
+            $result_array = array();
+            $arr = explode("\n",$result_string);
+            for($i = 0;$i<count($arr); $i++){
+                $line_array = explode(" ",$arr[$i]);
+                $mtr_array = array(
+                'host' => $line_array['0'],
+                'loss'=>(float)$line_array['1'],
+                'snt'=>(float)$line_array['2'],
+                'last'=>(float)$line_array['3'],
+                'avg'=>(float)$line_array['4'],
+                'best'=>(float)$line_array['5'],
+                'wrst'=>(float)$line_array['6'], );
+                array_push($result_array,$mtr_array);
+            }
+            return ($result_array);
+        } else {
+            return $exitCode = array(
+            'status' => 0,
+            'message'=>"host resolve failed"
+            );
+        }
+    }
+    
+    //mtr
+    public function mtr(){
+        $params = $this->resolveRequest();
+        if ($params['method'] == 'get' && count($params) > 2){
+            if (isset($params['host'])) {
+                $response[$params['host']]=$this->traceroute($params['host']);
+                $this->jsonOutput($response);
+            }
+        }
+    }
+    
 }
