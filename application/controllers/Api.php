@@ -127,6 +127,41 @@ class Api extends CI_Controller {
         }
     }
     
+    
+    
+    private function traceroute($host){
+        $this->load->library('command');
+        // 命令
+        $mtr = new Command('mtr -c 5 -r ');
+        $before_time = time();
+        $mtr ->setArgs($host . "|awk 'NR>2 {print $2,$3,$4,$5,$6,$7,$8}'");
+        if ($mtr->execute()) {
+            $result_string = $mtr->getOutput();
+            $after_time = time();
+            $result_array = array();
+            $arr = explode("\n",$result_string);
+            for($i = 0;$i<count($arr); $i++){
+                $line_array = explode(" ",$arr[$i]);
+                $mtr_array = array(
+                'host' => $line_array['0'],
+                'loss'=>(float)$line_array['1'],
+                'snt'=>(float)$line_array['2'],
+                'last'=>(float)$line_array['3'],
+                'avg'=>(float)$line_array['4'],
+                'best'=>(float)$line_array['5'],
+                'wrst'=>(float)$line_array['6'], );
+                array_push($result_array,$mtr_array);
+            }
+            return ($result_array);
+        } else {
+            return $exitCode = array(
+            'status' => 0,
+            'message'=>"host resolve failed"
+            );
+        }
+    }
+    
+    
     private function pong($host){
         $this->load->library('command');
         // 命令
@@ -446,10 +481,6 @@ class Api extends CI_Controller {
         }
         
     }
-    //视图
-    public function index(){
-        $this->load->view('status');
-    }
     
     //实时流量接口
     public function realTimeTraffic(){
@@ -488,37 +519,6 @@ class Api extends CI_Controller {
         }
     }
     
-    public function traceroute($host){
-        $this->load->library('command');
-        // 命令
-        $mtr = new Command('mtr -c 5 -r ');
-        $before_time = time();
-        $mtr ->setArgs($host . "|awk 'NR>2 {print $2,$3,$4,$5,$6,$7,$8}'");
-        if ($mtr->execute()) {
-            $result_string = $mtr->getOutput();
-            $after_time = time();
-            $result_array = array();
-            $arr = explode("\n",$result_string);
-            for($i = 0;$i<count($arr); $i++){
-                $line_array = explode(" ",$arr[$i]);
-                $mtr_array = array(
-                'host' => $line_array['0'],
-                'loss'=>(float)$line_array['1'],
-                'snt'=>(float)$line_array['2'],
-                'last'=>(float)$line_array['3'],
-                'avg'=>(float)$line_array['4'],
-                'best'=>(float)$line_array['5'],
-                'wrst'=>(float)$line_array['6'], );
-                array_push($result_array,$mtr_array);
-            }
-            return ($result_array);
-        } else {
-            return $exitCode = array(
-            'status' => 0,
-            'message'=>"host resolve failed"
-            );
-        }
-    }
     
     //mtr
     public function mtr(){
@@ -529,6 +529,15 @@ class Api extends CI_Controller {
                 $this->jsonOutput($response);
             }
         }
+    }
+    
+    
+    
+    /************************ View ********************************************/
+    
+    //视图
+    public function index(){
+        $this->load->view('status');
     }
     
 }
