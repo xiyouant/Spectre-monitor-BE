@@ -29,3 +29,8 @@ server/socks_config_swap_file/*.json
 
 ################### DB files ###########################
 application/config/database.php
+
+################### other files ###########################
+pagekit/
+
+

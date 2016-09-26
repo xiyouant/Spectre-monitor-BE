@@ -6,82 +6,10 @@
 // interface_meta_query()->网络接口查询并处理
 // getServiceStatus()->Spectre 状态查询并处理
 
-# 封装接口 API 以及返回格式:
-/*
-/api/query?query=domain
--->说明:单位时间内 http domain 访问 top10
--->请求方式: get
--->返回格式:对象数组
-
-/api/query?query=traffic
--->说明:单位时间内网络接口流量情况 (默认满额为 top 10)
--->请求方式: get
--->返回格式:对象数组
-
-/api/query?query=serviceStatus
--->说明:Spectre 运行状态查询
--->请求方式: get
--->返回格式: json
-{
-"redir": false,
-"tunnel": false,
-"memInfo": {
-"available": 8279168,
-"free": 4971220,
-"total": 12253692
-}
-}
-
-/api/ping?host=domain||IP
--->说明:ping
--->请求方式: get
--->返回格式: json
-ping 成功:
-{
-"bytes": "64",
-"ip": "ip",
-"icmp_seq": "1",
-"ttl": "48",
-"time": "318",
-"host": "host",
-"tx": "1",
-"rx": "1",
-"loss": "0",
-"static_time": "0",
-"min": "318.499",
-"avg": "318.499",
-"max": "318.499",
-"mdev": "0.000"
-}
-
-ping 失败:
-{
-"status": 0,
-"message": "ping failed"
-}
-
-/api/serviceReload
--->说明:服务(ss-tunnel||ss-redir)重新启动接口
--->请求方式: post
--->post 请求参数: restartService=重新启动的服务名称
--->返回格式: json
-重启成功:
-{
-"restartService": "ss-redir",
-"status": 1
-}
-重启失败
-{
-"restartService": "ss-redir",
-"status": 0
-}
-*/
-
 class Api extends CI_Controller {
     
     /************************ utils function ********************************************/
-    
-    //输出 json
+    // 输出 json
     private function jsonOutput($data){
         $this->output
         ->set_status_header(200)
@@ -94,6 +22,46 @@ class Api extends CI_Controller {
         exit;
     }
     
+    // 网卡流量元数据
+    private function traffic_KB(){
+        $strs = file("/proc/net/dev");
+        $interfaces = [];
+        $transmit = [];
+        $receive = [];
+        $combineArray = [];
+        for ($i = 2,$j = 0; $i < count($strs); $i++,$j++ )
+        {
+            preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+            // interfaces
+            $interfaces[$j] = $info[1][0];
+            // transmit
+            $transmit[$interfaces[$j]] = $this->unit_convert($info[10][0],"KB");
+            // receive
+            $receive[$interfaces[$j]] = $this->unit_convert($info[2][0],"KB");
+        }
+        $transmit['timeStamp'] = time();
+        $transmit['method'] = "transmit";
+        $receive['timeStamp'] = time();
+        $receive['method'] = "receive";
+        $trafficArray = array($receive,$transmit);
+        return $trafficArray;
+    }
+    
+    //单位转换函数
+    private function unit_convert($bytes,$unit){
+        
+        if($unit == "MB"){
+            $result = round($bytes/1000/1000, 1);
+        }
+        else if ($unit == "GB"){
+            $result = round($bytes/1000/1000/1000, 5);
+        }
+        
+        else if ($unit == "KB"){
+            $result = round($bytes/1000, 2);
+        }
+        return $result;
+    }
     
     //处理 Post 和 Get 请求函数
     //返回参数与 ip 构成的关联数组
@@ -112,6 +80,85 @@ class Api extends CI_Controller {
         }
         $ip=array('ip' => $this->input->ip_address());
         return array_merge_recursive($method,$params,$ip);
+    }
+    
+    private function curl($host){
+        $params = '-o /dev/null -s -w "
+        {
+            \"time_namelookup\":%{time_namelookup},
+            \"time_connect\":%{time_connect},
+            \"time_appconnect\":%{time_appconnect},
+            \"time_pretransfer\":%{time_pretransfer},
+            \"time_redirect\":%{time_redirect},
+            \"time_starttransfer\":%{time_starttransfer},
+            \"time_total\":%{time_total},
+            \"speed_download\": %{speed_download},
+            \"speed_upload\": %{speed_upload}
+        }"' . " " . $host;
+        $this->load->library('command');
+        // 命令
+        $curl = new Command('curl' );
+        $curl ->setArgs($params);
+        if ($curl->execute()) {
+            $result_string = $curl->getOutput();
+            $curl_meta = json_decode($result_string, true);
+            $curl_meta['range_connection'] = $curl_meta['time_connect'] - $curl_meta['time_namelookup'];
+            $curl_meta['range_ssl'] = $curl_meta['time_pretransfer'] - $curl_meta['time_connect'];
+            $curl_meta['range_server'] = $curl_meta['time_starttransfer'] - $curl_meta['time_pretransfer'];
+            $curl_meta['range_transfer']=$curl_meta['time_total'] - $curl_meta['time_starttransfer'];
+            foreach ($curl_meta as $key => $value) {
+                $time_pattern="/(time_*)|(range_*)/";
+                $byte_pattern="/(speed_*)/";
+                // ms
+                if (preg_match($time_pattern, $key)) {
+                    $curl_meta[$key]=($value * 1000);
+                }
+                // KiB
+                if (preg_match($byte_pattern, $key)){
+                    $curl_meta[$key]=round(($value / 1024),3);
+                }
+            }
+            return $curl_meta;
+        } else {
+            return $exitCode = array(
+            'status' => 0,
+            'message'=>"host resolve failed"
+            );
+        }
+    }
+    
+    
+    
+    private function traceroute($host){
+        $this->load->library('command');
+        // 命令
+        $mtr = new Command('mtr -c 5 -r ');
+        $before_time = time();
+        $mtr ->setArgs($host . "|awk 'NR>2 {print $2,$3,$4,$5,$6,$7,$8}'");
+        if ($mtr->execute()) {
+            $result_string = $mtr->getOutput();
+            $after_time = time();
+            $result_array = array();
+            $arr = explode("\n",$result_string);
+            for($i = 0;$i<count($arr); $i++){
+                $line_array = explode(" ",$arr[$i]);
+                $mtr_array = array(
+                'host' => $line_array['0'],
+                'loss'=>(float)$line_array['1'],
+                'snt'=>(float)$line_array['2'],
+                'last'=>(float)$line_array['3'],
+                'avg'=>(float)$line_array['4'],
+                'best'=>(float)$line_array['5'],
+                'wrst'=>(float)$line_array['6'], );
+                array_push($result_array,$mtr_array);
+            }
+            return ($result_array);
+        } else {
+            return $exitCode = array(
+            'status' => 0,
+            'message'=>"host resolve failed"
+            );
+        }
     }
     
     
@@ -153,8 +200,6 @@ class Api extends CI_Controller {
                 );
                 return array_merge_recursive($pingsLineResult,$pingStatistics);
             }
-            
-            
         }
         else {
             $exitCode = $ping->getExitCode();
@@ -437,8 +482,60 @@ class Api extends CI_Controller {
         
     }
     
+    //实时流量接口
+    public function realTimeTraffic(){
+        $data_before = $this->traffic_KB();
+        usleep(500000);
+        $data_after = $this->traffic_KB();
+        $interface_count=count($data_before[0])-1;
+        foreach($data_before[0] as $key=>$value){
+            if ($key !=="timeStamp") {
+                $receive_per_second[$key] = round(($data_after[0][$key] - $data_before[0][$key])*2,2);
+            }
+            else{
+                $receive_per_second[$key] = $data_after[0][$key];
+            }
+        }
+        foreach($data_before[1] as $key=>$value){
+            if ($key !=="timeStamp") {
+                $transmit_per_second[$key] = round(($data_after[1][$key] - $data_before[1][$key])*2,2);
+            }
+            else{
+                $transmit_per_second[$key] = $data_after[0][$key];
+            }
+        }
+        $response['receive']=array_splice($receive_per_second,0,$interface_count);
+        $response['transmit']=array_splice($transmit_per_second,0,$interface_count);
+        $this->jsonOutput($response);
+    }
     
-    // 视图
+    //http 信息统计
+    public function httpStat(){
+        $params = $this->resolveRequest();
+        if ($params['method'] == 'get' && count($params) > 2){
+            if (isset($params['host'])) {
+                $this->jsonOutput($this->curl($params['host']));
+            }
+        }
+    }
+    
+    
+    //mtr
+    public function mtr(){
+        $params = $this->resolveRequest();
+        if ($params['method'] == 'get' && count($params) > 2){
+            if (isset($params['host'])) {
+                $response[$params['host']]=$this->traceroute($params['host']);
+                $this->jsonOutput($response);
+            }
+        }
+    }
+    
+    
+    
+    /************************ View ********************************************/
+    
+    //视图
     public function index(){
         $this->load->view('status');
     }

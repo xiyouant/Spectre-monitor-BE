@@ -1,32 +1,6 @@
 # Spectre-monitor-dashboard
 ### Spectre-monitor 后端数据处理模块
 
-### 安装:
-
-切换至 webserver 目录:
-```
-cd /home/wwwroot
-```
-Git clone:
-```shell
-git clone https://github.com/xiyouant/Spectre-monitor-BE.git
-```
-覆盖 `default` 内的原始文件:
-```shell
-mv Spectre-monitor-BE/* default
-```
-
-### 启动
-
-浏览器访问:
-
-`homepage`:
-```shell
-192.168.2.1
-```
-
-
-
 
 ### 封装接口 API 以及返回格式:
 
@@ -93,6 +67,213 @@ ping 失败:
     "status": 0,
     "message": "ping failed"
     }
+
+
+**/api/mtr?host=`domain||IP`**
+
+ - -->说明:mytraceroute
+ - -->请求方式: get
+ - -->返回格式: json
+ - -->以 baidu.com 为例
+
+```
+{
+  "baidu.com": [
+    {
+      "host": "gateway",
+      "loss": 0,
+      "snt": 5,
+      "last": 0.6,
+      "avg": 0.5,
+      "best": 0.4,
+      "wrst": 0.6
+    },
+    {
+      "host": "222.24.51.1",
+      "loss": 0,
+      "snt": 5,
+      "last": 1,
+      "avg": 1.2,
+      "best": 0.7,
+      "wrst": 2
+    },
+    {
+      "host": "222.24.63.25",
+      "loss": 0,
+      "snt": 5,
+      "last": 0.9,
+      "avg": 0.9,
+      "best": 0.7,
+      "wrst": 1.2
+    },
+    {
+      "host": "10.224.91.201",
+      "loss": 0,
+      "snt": 5,
+      "last": 2.4,
+      "avg": 1.7,
+      "best": 1.3,
+      "wrst": 2.4
+    },
+    {
+      "host": "10.224.91.5",
+      "loss": 0,
+      "snt": 5,
+      "last": 1.5,
+      "avg": 1.6,
+      "best": 1.5,
+      "wrst": 1.6
+    },
+    {
+      "host": "117.36.240.49",
+      "loss": 0,
+      "snt": 5,
+      "last": 4.8,
+      "avg": 4.1,
+      "best": 2.8,
+      "wrst": 4.8
+    },
+    {
+      "host": "202.97.65.77",
+      "loss": 0,
+      "snt": 5,
+      "last": 24.1,
+      "avg": 24.1,
+      "best": 23.9,
+      "wrst": 24.3
+    },
+    {
+      "host": "202.97.88.234",
+      "loss": 20,
+      "snt": 5,
+      "last": 20.6,
+      "avg": 20.5,
+      "best": 20.4,
+      "wrst": 20.6
+    },
+    {
+      "host": "221.183.15.17",
+      "loss": 0,
+      "snt": 5,
+      "last": 24.6,
+      "avg": 24.8,
+      "best": 24.3,
+      "wrst": 25.6
+    },
+    {
+      "host": "221.176.21.161",
+      "loss": 60,
+      "snt": 5,
+      "last": 29.9,
+      "avg": 30.2,
+      "best": 29.9,
+      "wrst": 30.6
+    },
+    {
+      "host": "221.183.18.130",
+      "loss": 60,
+      "snt": 5,
+      "last": 33.2,
+      "avg": 33.2,
+      "best": 33.2,
+      "wrst": 33.2
+    },
+    {
+      "host": "111.13.98.249",
+      "loss": 0,
+      "snt": 5,
+      "last": 29.6,
+      "avg": 29.9,
+      "best": 29.4,
+      "wrst": 30.4
+    },
+    {
+      "host": "111.13.108.26",
+      "loss": 0,
+      "snt": 5,
+      "last": 33.5,
+      "avg": 33.7,
+      "best": 33.3,
+      "wrst": 34.9
+    },
+    {
+      "host": "???",
+      "loss": 100,
+      "snt": 5,
+      "last": 0,
+      "avg": 0,
+      "best": 0,
+      "wrst": 0
+    },
+    {
+      "host": "???",
+      "loss": 100,
+      "snt": 5,
+      "last": 0,
+      "avg": 0,
+      "best": 0,
+      "wrst": 0
+    },
+    {
+      "host": "111.13.101.208",
+      "loss": 0,
+      "snt": 5,
+      "last": 29.7,
+      "avg": 29.6,
+      "best": 29.4,
+      "wrst": 29.7
+    }
+  ]
+}
+```
+
+**/api/httpStat?host=`domain||IP`**
+
+ - -->说明: HTTP 信息统计，包括 DNS 查询时间、TCP 连接时间、SSL 握手时间、服务端响应时间、内容传输时间和总耗时
+ - -->请求方式: get
+ - -->返回格式: json
+ - -->以 baidu.com 为例
+
+```
+{
+  "time_namelookup": 28,
+  "time_connect": 50,
+  "time_appconnect": 0,
+  "time_pretransfer": 50,
+  "time_redirect": 0,
+  "time_starttransfer": 75,
+  "time_total": 76,
+  "speed_download": 1.047,
+  "speed_upload": 0,
+  "range_connection": 22,
+  "range_ssl": 0,
+  "range_server": 25,
+  "range_transfer": 1
+}
+
+```
+**/api/realTimeTraffic()**
+
+ - -->说明:各网口实时流量 KB/s,网络接口根据实际接口动态更新
+ - -->请求方式:get 
+ - -->返回格式: json
+
+ ```
+ {
+  "receive": {
+    "eth0": 4.84,
+    "wlan0": 0,
+    "lo": 0,
+    "timeStamp": 1474879700
+  },
+  "transmit": {
+    "eth0": 0.44,
+    "wlan0": 0,
+    "lo": 0,
+    "timeStamp": 1474879700
+  }
+}
+ ```
 
 **/api/serviceReload**
 
